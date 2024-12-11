@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, FlatList, Modal, Image, Alert, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-const FleetForm = () => {
+const FleetForm = ({ navigation }) => {
   const [UnitType, setUnitType] = useState('');
   const [UnitNumber, setUnitNumber] = useState('');
   const [Emergency, setEmergency] = useState('');
@@ -218,6 +218,11 @@ const FleetForm = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add Specifics</Text>
+            <TouchableOpacity
+            onPress={() => navigation.navigate('truckpositionSelect')}
+            >
+              <Text >Position Select</Text>
+            </TouchableOpacity>
             <TextInput
               style={styles.modalInput}
               placeholder="Flat or Replace"
