@@ -24,7 +24,7 @@ const FleetForm = () => {
         UnitNumber,
         Emergency,
         specifics: [],
-        images: [], // Initialize images as an empty array
+        images: [], 
       },
     ]);
 
@@ -39,11 +39,11 @@ const FleetForm = () => {
   };
 
   const handleAddPositionSpecifics = () => {
-    const newGroup = [Service, TreadDepth, TireNeeded];
+    const SpecificsGroup = [Service, TreadDepth, TireNeeded];
     setUnits((prevUnits) =>
       prevUnits.map((unit) =>
         unit.id === currentUnitId
-          ? { ...unit, specifics: [...unit.specifics, newGroup] }
+          ? { ...unit, specifics: [...unit.specifics, SpecificsGroup] }
           : unit
       )
     );
@@ -103,11 +103,11 @@ const FleetForm = () => {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
 
-      // Prompt the user to enter a label for the image
+  
       setImageLabel('');
       Alert.prompt(
-        'Enter Label',
-        'Please enter a label for the image:',
+        'Position',
+        'Please specify a position for the image to be uploaded.',
         [
           { text: 'Cancel' },
           { text: 'OK', onPress: (text) => saveImageWithLabel(unitId, uri, text) },
@@ -128,7 +128,7 @@ const FleetForm = () => {
         )
       );
     } else {
-      alert('Please enter a label for the image.');
+      alert('Please enter a Position.');
     }
   };
 
