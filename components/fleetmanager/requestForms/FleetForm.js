@@ -177,22 +177,31 @@ const FleetForm = ({ navigation }) => {
             <Text style={styles.previewText}>Emergency: {item.Emergency}</Text>
             
             <View style={styles.specificsList}>
-              <Text style={styles.previewText}>Specifics:</Text>
-              {item.specifics.length > 0 ? (
-                item.specifics.map((specific, index) => (
-                  <View key={index} style={styles.specificItem}>
-                    <Text style={styles.specificDetail}>Service: {specific.service}</Text>
-                    <Text style={styles.specificDetail}>Tread Depth: {specific.TreadDepth}</Text>
-                    <Text style={styles.specificDetail}>Tire Needed: {specific.tireNeeded}</Text>
-                    <Text style={styles.specificDetail}>
-                      Position: {specific.selectedPosition.join(", ") || "None"}
-                    </Text>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.noSpecificsText}>No specifics added.</Text>
-              )}
-            </View>
+  <Text style={styles.previewText}>Specifics:</Text>
+  {item.specifics.length > 0 ? (
+    <FlatList
+      data={item.specifics}
+      keyExtractor={(specific, index) => index.toString()} // Unique key for each item
+      renderItem={({ item: specific, index }) => {
+        // Alternate background color between gray and light gray
+        const backgroundColor = index % 2 === 0 ? '#D3D3D3' : '#F0F0F0'; // Gray and Light Gray
+
+        return (
+          <View style={[styles.specificItem, { backgroundColor }]}>
+            <Text style={styles.specificDetail}>Service: {specific.service}</Text>
+            <Text style={styles.specificDetail}>Tread Depth: {specific.TreadDepth}</Text>
+            <Text style={styles.specificDetail}>Tire Needed: {specific.tireNeeded}</Text>
+            <Text style={styles.specificDetail}>
+              Position: {specific.selectedPosition.join(", ") || "None"}
+            </Text>
+          </View>
+        );
+      }}
+    />
+  ) : (
+    <Text style={styles.noSpecificsText}>No specifics added.</Text>
+  )}
+</View>
             
             {item.images.length > 0 && (
               <FlatList
@@ -349,6 +358,11 @@ const styles = StyleSheet.create({
   fontSize: 16,
   marginTop: 10,
   textAlign: 'center',
+},
+specificItem: {
+  padding: 10,
+  borderRadius: 4,
+  marginBottom: 8,
 },
   
 });

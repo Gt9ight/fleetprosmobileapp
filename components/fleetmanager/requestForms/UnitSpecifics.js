@@ -60,25 +60,31 @@ const UnitSpecifics = ({ closeModal, saveSpecifics }) => {
             value={tireNeeded}
             onChangeText={setTireNeeded}
           />
-         <Button title="Add" onPress={handleAddSpecific} color="blue" />
+          <View style={styles.modalButtons}>
+            <Button title="Done" onPress={handleDone} color="green" />
+            <Button title="Add" onPress={handleAddSpecific} color="blue" />
+         </View>
 
 {/* Display the list of specifics added */}
 <FlatList
   data={specificsList}
   keyExtractor={(item, index) => index.toString()}
-  renderItem={({ item }) => (
-    <View style={styles.specificItem}>
-      <Text>Service: {item.service}</Text>
-      <Text>Tread Depth: {item.TreadDepth}</Text>
-      <Text>Tire Needed: {item.tireNeeded}</Text>
-      <Text>Position: {item.selectedPosition.join(", ") || "None"}</Text>
-    </View>
-  )}
+  renderItem={({ item, index }) => {
+    // Alternate background color between light gray and dark gray
+    const backgroundColor = index % 2 === 0 ? '#D3D3D3' : '#A9A9A9'; // Light gray and Dark gray
+    
+    return (
+      <View style={[styles.specificItem, { backgroundColor }]}>
+        <Text>Service: {item.service}</Text>
+        <Text>Tread Depth: {item.TreadDepth}</Text>
+        <Text>Tire Needed: {item.tireNeeded}</Text>
+        <Text>Position: {item.selectedPosition.join(", ") || "None"}</Text>
+      </View>
+    );
+  }}
 />
 
-<View style={styles.modalButtons}>
-  <Button title="Done" onPress={handleDone} color="green" />
-</View>
+
 </View>
 </View>
 );
@@ -116,10 +122,16 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   specificItem: {
-    padding: 8,
+    padding: 10,
+    margin: 5,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
-  },
+    width: 200,
+    textAlign: 'center',  // Horizontal text alignment
+    justifyContent: 'center', // Vertical alignment of children
+    alignItems: 'center', // Centers the content horizontally inside the container
+  
+  }
 });
   
   export default UnitSpecifics;
