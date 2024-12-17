@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text, FlatList, Modal, Image, Alert, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import UnitSpecifics from './UnitSpecifics';
 
 const FleetForm = ({ navigation }) => {
   const [UnitType, setUnitType] = useState('');
   const [UnitNumber, setUnitNumber] = useState('');
   const [Emergency, setEmergency] = useState('');
   const [Units, setUnits] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentUnitId, setCurrentUnitId] = useState(null);
-  const [Service, setService] = useState('');
-  const [TreadDepth, setTreadDepth] = useState('');
-  const [TireNeeded, setTireNeeded] = useState('');
   const [imageLabel, setImageLabel] = useState('');
   const [enlargedImage, setEnlargedImage] = useState(null);
-  const [enlargedImageVisible, setEnlargedImageVisible] = useState(false);     
+  const [enlargedImageVisible, setEnlargedImageVisible] = useState(false);
+  const [isSpecificsModalVisible, setSpecificsModalVisible] = useState(false); // Modal visibility state
+  const [selectedUnitId, setSelectedUnitId] = useState(null); 
+  
+  
   const handleAddUnit = () => {
     setUnits((prevUnits) => [
       ...prevUnits,
@@ -24,33 +24,16 @@ const FleetForm = ({ navigation }) => {
         UnitNumber,
         Emergency,
         specifics: [],
-        images: [], 
+        images: [],
       },
     ]);
-
     setUnitType('');
     setUnitNumber('');
     setEmergency('');
   };
 
-  const openModal = (unitId) => {
-    setCurrentUnitId(unitId);
-    setModalVisible(true);
-  };
 
-  const handleAddPositionSpecifics = () => {
-    const SpecificsGroup = [Service, TreadDepth, TireNeeded];
-    setUnits((prevUnits) =>
-      prevUnits.map((unit) =>
-        unit.id === currentUnitId
-          ? { ...unit, specifics: [...unit.specifics, SpecificsGroup] }
-          : unit
-      )
-    );
-    setService('');
-    setTreadDepth('');
-    setTireNeeded('')
-  };
+
 
   const handleImageUpload = (unitId) => {
     Alert.alert(
@@ -137,6 +120,27 @@ const FleetForm = ({ navigation }) => {
     setEnlargedImageVisible(true);
   };
 
+  const handleAddSpecifics = (unitId) => {
+    setSelectedUnitId(unitId); // Set the unit ID for which specifics are being added
+    setSpecificsModalVisible(true); // Show the modal
+  };
+
+  const saveSpecifics = (unitId, newSpecifics) => {
+    setUnits((prevUnits) =>
+      prevUnits.map((unit) =>
+        unit.id === unitId
+          ? { ...unit, specifics: [...unit.specifics, ...newSpecifics] }
+          : unit
+      )
+    );
+    closeSpecificsModal(); // Close the modal
+  };
+
+  const closeSpecificsModal = () => {
+    setSpecificsModalVisible(false);
+    setSelectedUnitId(null); // Clear the selected unit ID
+  };
+
 
   return (
     <View style={styles.container}>
@@ -171,24 +175,25 @@ const FleetForm = ({ navigation }) => {
             <Text style={styles.previewText}>Unit Type: {item.UnitType}</Text>
             <Text style={styles.previewText}>Unit Number: {item.UnitNumber}</Text>
             <Text style={styles.previewText}>Emergency: {item.Emergency}</Text>
-            {item.specifics.length > 0 && (
-  <View style={styles.specificsList}>
-    <Text style={styles.previewText}>Specifics:</Text>
-    {item.specifics.map((group, index) => (
-      <View
-        key={index}
-        style={[
-          styles.specificGroup,
-          { backgroundColor: index % 2 === 0 ? '#f0f0f0' : '#dcdcdc' },
-        ]}
-      >
-        <Text style={styles.specificText}>Service Needed: {group[0]}</Text>
-        <Text style={styles.specificText}>Tread Depth: {group[1]}</Text>
-        <Text style={styles.specificText}>Tire Needed: {group[2]}</Text>
-      </View>
-    ))}
-              </View>
-            )}
+            
+            <View style={styles.specificsList}>
+              <Text style={styles.previewText}>Specifics:</Text>
+              {item.specifics.length > 0 ? (
+                item.specifics.map((specific, index) => (
+                  <View key={index} style={styles.specificItem}>
+                    <Text style={styles.specificDetail}>Service: {specific.service}</Text>
+                    <Text style={styles.specificDetail}>Tread Depth: {specific.TreadDepth}</Text>
+                    <Text style={styles.specificDetail}>Tire Needed: {specific.tireNeeded}</Text>
+                    <Text style={styles.specificDetail}>
+                      Position: {specific.selectedPosition.join(", ") || "None"}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noSpecificsText}>No specifics added.</Text>
+              )}
+            </View>
+            
             {item.images.length > 0 && (
               <FlatList
                 data={item.images}
@@ -202,60 +207,24 @@ const FleetForm = ({ navigation }) => {
                 )}
               />
             )}
-            <Button title="Add Specifics" onPress={() => openModal(item.id)} />
+            <Button title="Add Specifics" onPress={() => handleAddSpecifics(item.id)} />
             <Button title="Upload Image" onPress={() => handleImageUpload(item.id)} />
           </View>
         )}
         style={styles.unitList}
       />
-
       <Modal
-        visible={modalVisible}
+        visible={isSpecificsModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={closeSpecificsModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Specifics</Text>
-            <TouchableOpacity
-            onPress={() => navigation.navigate('truckpositionSelect')}
-            >
-              <Text >Position Select</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Flat or Replace"
-              value={Service}
-              onChangeText={setService}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter TreadDepth"
-              value={TreadDepth}
-              onChangeText={setTreadDepth}
-            />
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter Tire Needed"
-              value={TireNeeded}
-              onChangeText={setTireNeeded}
-            />
-            <View style={styles.modalButtons}>
-              <Button title="Add" onPress={handleAddPositionSpecifics} />
-              <Button
-                title="Done"
-                onPress={() => {
-                  setModalVisible(false);
-                  setService('');
-                  setTreadDepth('');
-                }}
-                color="green"
-              />
-            </View>
-          </View>
-        </View>
+        <UnitSpecifics
+          saveSpecifics={(newSpecifics) => saveSpecifics(selectedUnitId, newSpecifics)}
+          closeModal={closeSpecificsModal}
+        />
       </Modal>
+
   
       <Modal
         visible={enlargedImageVisible}
@@ -317,19 +286,6 @@ const styles = StyleSheet.create({
   previewText: {
     fontSize: 16,
     marginBottom: 4,
-  },
-  specificsList: {
-    marginTop: 8,
-    marginLeft: 16,
-  },
-  specificGroup: {
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  specificText: {
-    fontSize: 14,
-    color: '#555',
   },
   modalOverlay: {
     flex: 1,
