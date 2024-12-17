@@ -8,7 +8,7 @@ export default function FleetManager({navigation}) {
 
       {/* SafeAreaView ensures navbar doesn't overlap with the home button/gestures */}
       <SafeAreaView style={styles.navContainer}>
-        <TouchableOpacity style={styles.navTab} style={styles.navTab} onPress={() => navigation.navigate('ServCalls')}>>
+        <TouchableOpacity style={styles.navTab} style={styles.navTab} onPress={() => navigation.navigate('ServCalls')}>
           <Text style={styles.navText}>Fleets</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navTab}>
