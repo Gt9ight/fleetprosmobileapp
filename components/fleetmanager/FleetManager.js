@@ -1,34 +1,21 @@
 import React from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import Navbar from '../navbar/Navbar';
 
 export default function FleetManager({navigation}) {
   return (
     <View style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome</Text>
 
-      {/* SafeAreaView ensures navbar doesn't overlap with the home button/gestures */}
-      <SafeAreaView style={styles.navContainer}>
-        <TouchableOpacity style={styles.navTab}  onPress={() => navigation.navigate('ServCalls')}>
-          <Text style={styles.navText}>Fleets</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navTab}>
-          <Text style={styles.navText}>Stats</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navTab}>
-          <Text style={styles.navText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navTab} onPress={() => navigation.navigate('RequestType')}>
-          <Text style={styles.navText}>Start</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navTab}>
-          <Text style={styles.navText}>Account</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <Text style={styles.welcomeText}>Welcome</Text>
+      <Navbar navigation={navigation} currentScreen="FleetManager" />
     </View>
+    
+    
   );
 }
 
 const styles = StyleSheet.create({
+  
   container: {
     flex: 1,
     justifyContent: 'flex-start',

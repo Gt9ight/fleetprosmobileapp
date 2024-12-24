@@ -1,137 +1,171 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Button, StyleSheet, FlatList } from "react-native";
-import TruckPositionSelect from "./TruckPositionSelector";
-const UnitSpecifics = ({ closeModal, saveSpecifics }) => {
-    const [service, setService] = useState('')
-    const [TreadDepth, setTreadDepth] = useState('')
-    const [tireNeeded, setTireNeeded] = useState('')
-    const [selectedPosition, setSelectePosition] = useState([]);
-    const [specificsList, setSpecificsList] = useState([]);
-    const handleAddSpecific = () => {
-      if (!service || !TreadDepth || !tireNeeded) {
-        alert("Please fill in all fields.");
-        return;
-      }
-  
-      const newSpecific = {
-        service,
-        TreadDepth,
-        tireNeeded,
-        selectedPosition,
-      };
-  
-      setSpecificsList((prevList) => [...prevList, newSpecific]);
-  
-      // Clear the form
-      setService('');
-      setTreadDepth('');
-      setTireNeeded('');
-      setSelectePosition([]);
-    };
-  
-    const handleDone = () => {
-      saveSpecifics(specificsList); // Pass the specifics list back to FleetForm
-      closeModal(); // Close the modal
-      setSpecificsList([]); // Clear the specifics list
-    };
-  
-    return (
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Add Specifics</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('truckpositionSelect')}>
-            <Text>Position Select</Text>
-          </TouchableOpacity>
-          <TextInput
-            style={styles.modalInput}
-            placeholder="Flat or Replace"
-            value={service}
-            onChangeText={setService}
-          />
-          <TextInput
-            style={styles.modalInput}
-            placeholder="Enter TreadDepth"
-            value={TreadDepth}
-            onChangeText={setTreadDepth}
-          />
-          <TextInput
-            style={styles.modalInput}
-            placeholder="Enter Tire Needed"
-            value={tireNeeded}
-            onChangeText={setTireNeeded}
-          />
-          <View style={styles.modalButtons}>
-            <Button title="Done" onPress={handleDone} color="green" />
-            <Button title="Add" onPress={handleAddSpecific} color="blue" />
-         </View>
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 
-{/* Display the list of specifics added */}
-<FlatList
-  data={specificsList}
-  keyExtractor={(item, index) => index.toString()}
-  renderItem={({ item, index }) => {
-    // Alternate background color between light gray and dark gray
-    const backgroundColor = index % 2 === 0 ? '#D3D3D3' : '#A9A9A9'; // Light gray and Dark gray
-    
-    return (
-      <View style={[styles.specificItem, { backgroundColor }]}>
-        <Text>Service: {item.service}</Text>
-        <Text>Tread Depth: {item.TreadDepth}</Text>
-        <Text>Tire Needed: {item.tireNeeded}</Text>
-        <Text>Position: {item.selectedPosition.join(", ") || "None"}</Text>
-      </View>
-    );
-  }}
-/>
+const UnitSpecifics = ({ onDone }) => {
+  const [serviceNeeded, setServiceNeeded] = useState(null);
+  const [treadDepth, setTreadDepth] = useState('');
+  const [tireNeeded, setTireNeeded] = useState('');
+  const [specificsList, setSpecificsList] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([
+    { label: 'Flat Repair', value: 'Flat Repair' },
+    { label: 'Replace', value: 'Replace' },
+  ]);
 
+  const handleAddSpecific = () => {
+    if (!serviceNeeded || !treadDepth || !tireNeeded) {
+      Alert.alert('Error', 'Please fill in all fields before adding.');
+      return;
+    }
 
-</View>
-</View>
-);
+    const newSpecific = { serviceNeeded, treadDepth, tireNeeded };
+    setSpecificsList([...specificsList, newSpecific]);
+
+    setServiceNeeded(null);
+    setTreadDepth('');
+    setTireNeeded('');
+  };
+
+  const handleSubmit = () => {
+    if (specificsList.length === 0) {
+      Alert.alert('Error', 'Please add at least one specific before submitting.');
+      return;
+    }
+
+    onDone(specificsList);
+  };
+
+  return (
+    <View style={styles.container}>
+      <View><Text style={styles.SpecificsTitle}>Unit Specifics</Text></View>
+      <Text style={styles.label}>Service Needed:</Text>
+      <DropDownPicker
+        open={open}
+        value={serviceNeeded}
+        items={items}
+        setOpen={setOpen}
+        setValue={setServiceNeeded}
+        setItems={setItems}
+        placeholder="Select a service"
+        style={styles.dropdown}
+        textStyle={styles.dropdownText}
+        placeholderStyle={styles.placeholder}
+      />
+
+      <Text style={styles.label}>Tread Depth:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter the tread depth"
+        keyboardType="numeric"
+        value={treadDepth}
+        onChangeText={setTreadDepth}
+      />
+
+      <Text style={styles.label}>Tire Needed:</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter the tire needed"
+        value={tireNeeded}
+        onChangeText={setTireNeeded}
+      />
+
+      <TouchableOpacity style={styles.addButton} onPress={handleAddSpecific}>
+        <Text style={styles.buttonText}>Add</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.label}>Added Specifics:</Text>
+      <FlatList
+        data={specificsList}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <View style={styles.specificCard}>
+            <Text style={styles.specificText}>
+              {index + 1}. Service: {item.serviceNeeded}
+            </Text>
+            <Text style={styles.specificText}>Tread Depth: {item.treadDepth}</Text>
+            <Text style={styles.specificText}>Tire Needed: {item.tireNeeded}</Text>
+          </View>
+        )}
+      />
+
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Submit</Text>
+      </TouchableOpacity>
+    </View>
+  );
 };
+
 const styles = StyleSheet.create({
-  modalOverlay: {
+  container: {
+    padding: 20,
+    backgroundColor: '#f4f4f4',
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  modalContent: {
-    width: "80%",
-    padding: 16,
-    backgroundColor: "white",
-    borderRadius: 8,
-    alignItems: "center",
+  SpecificsTitle: {
+    fontSize: 20,
+    textAlign: 'center',
+    marginTop: 50
   },
-  modalTitle: {
-    fontSize: 18,
+  label: {
+    fontSize: 16,
     marginBottom: 8,
+    color: '#333',
   },
-  modalInput: {
-    width: "100%",
-    height: 40,
-    borderColor: "gray",
+  input: {
     borderWidth: 1,
-    borderRadius: 4,
-    marginBottom: 16,
-    paddingLeft: 8,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  specificItem: {
+    borderColor: '#ccc',
+    borderRadius: 8,
     padding: 10,
-    margin: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    width: 200,
-    textAlign: 'center',  // Horizontal text alignment
-    justifyContent: 'center', // Vertical alignment of children
-    alignItems: 'center', // Centers the content horizontally inside the container
-  
-  }
+    marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  dropdown: {
+    marginBottom: 15,
+    borderRadius: 8,
+    borderColor: '#ccc',
+  },
+  dropdownText: {
+    fontSize: 16,
+  },
+  placeholder: {
+    color: '#999',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  submitButton: {
+    backgroundColor: '#007BFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  specificCard: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  specificText: {
+    fontSize: 14,
+    color: '#333',
+  },
 });
-  
-  export default UnitSpecifics;
+
+export default UnitSpecifics;

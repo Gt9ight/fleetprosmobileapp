@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet } from 'react-native';
+import Navbar from '../../navbar/Navbar';
 
 const RequestType = ({navigation}) => {
   const handleServiceCallPress = () => {
@@ -23,7 +24,9 @@ const RequestType = ({navigation}) => {
         onPress={() => navigation.navigate('FleetForm')}
         style={styles.button}
       />
+      <Navbar  navigation={navigation} currentScreen="RequestType" />
     </View>
+    
   );
 };
 

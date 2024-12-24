@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../../../Firebase'; // Make sure to adjust this path based on your project structure
+import Navbar from '../../navbar/Navbar';
 
-const ServiceCalls = () => {
+const ServiceCalls = ({navigation}) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +30,15 @@ const ServiceCalls = () => {
   }
 
   return (
+    <View>
+            <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.buttonLeft} onPress={() => navigation.navigate('ServCalls')}>
+          <Text style={styles.buttonText}>Service Calls</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.buttonRight} onPress={() => navigation.navigate('fleets')}>
+          <Text style={styles.buttonText}>Fleets</Text>
+        </TouchableOpacity>
+      </View>
     <ScrollView contentContainerStyle={styles.container}>
       {data.map((item, index) => (
         <View key={index} style={styles.card}>
@@ -49,7 +59,13 @@ const ServiceCalls = () => {
           )}
         </View>
       ))}
+      
+      
     </ScrollView>
+    <Navbar   navigation={navigation} currentScreen="ServCalls" />
+          
+    
+    </View>
   );
 };
 
@@ -85,6 +101,35 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     resizeMode: 'cover',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: '#f8f8f8',
+  },
+  buttonRight: {
+    flex: 1, // This ensures both buttons take up equal space
+    backgroundColor: '#007BFF',
+    paddingVertical: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    
+    
+  },
+  buttonLeft: {
+    flex: 1, // This ensures both buttons take up equal space
+    backgroundColor: '#007BFF',
+    paddingVertical: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: 2, // Add the right border
+    borderRightColor: 'black',
+    
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

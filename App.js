@@ -11,6 +11,7 @@ import ServiceCallForm from './components/fleetmanager/requestForms/ServiceForm'
 import ServiceCalls from './components/fleets/servicecalls/ServiceCalls';
 import TruckPositionSelect from './components/fleetmanager/requestForms/TruckPositionSelector';
 import UnitSpecifics from './components/fleetmanager/requestForms/UnitSpecifics';
+import Fleets from './components/fleets/Fleets';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         <Stack.Screen name="FleetForm" component={FleetForm} />
         <Stack.Screen name="ServiceForm" component={ServiceCallForm} />
         <Stack.Screen name="ServCalls" component={ServiceCalls} />
+        <Stack.Screen name="fleets" component={Fleets} />
         <Stack.Screen name="RequestType" component={RequestType} />
       </Stack.Navigator>
     </NavigationContainer>
