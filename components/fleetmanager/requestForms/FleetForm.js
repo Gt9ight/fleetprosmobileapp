@@ -11,11 +11,15 @@ const FleetForm = () => {
   const [date, setDate] = useState(new Date());
   const [openUnitType, setOpenUnitType] = useState(false);
   const [openEmergency, setOpenEmergency] = useState(false);
+  const [unitTypeValue, setUnitTypeValue] = useState(null);
   const [itemsUnitType, setItemsUnitType] = useState([
+  
     { label: 'Truck', value: 'Truck' },
     { label: 'Trailer', value: 'Trailer' }
   ]);
+  const [emergencyValue, setEmergencyValue] = useState(null);
   const [itemsEmergency, setItemsEmergency] = useState([
+   
     { label: 'Dropped Unit', value: 'Dropped Unit' },
     { label: 'Leaving Soon', value: 'Leaving Soon' },
     { label: 'Driver Waiting', value: 'Driver Waiting' }
@@ -56,6 +60,8 @@ const FleetForm = () => {
     }
 
     setUnitNumber('');
+    setEmergencyValue('')
+    setUnitTypeValue('')
   };
 
   const handleAddSpecifics = (index) => {
@@ -87,15 +93,14 @@ const FleetForm = () => {
     <View style={styles.container}>
       <Text style={styles.title}>{fleetName}</Text>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Select Unit Type:</Text>
+      <View style={styles.formGroup}>     
         <View style={styles.pickerContainer}>
           <DropDownPicker
             open={openUnitType}
-            value={unitType}
+            value={unitTypeValue}
             items={itemsUnitType}
             setOpen={setOpenUnitType}
-            setValue={setUnitType}
+            setValue={setUnitTypeValue}
             setItems={setItemsUnitType}
             style={styles.picker}
             placeholder="Select Unit Type"
@@ -113,16 +118,14 @@ const FleetForm = () => {
           placeholderTextColor="#6c757d"
         />
       </View>
-
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Select Emergency Status:</Text>
+      <View style={styles.formGroup}>      
         <View style={styles.pickerContainer}>
           <DropDownPicker
             open={openEmergency}
-            value={emergency}
+            value={emergencyValue}
             items={itemsEmergency}
             setOpen={setOpenEmergency}
-            setValue={setEmergency}
+            setValue={setEmergencyValue}
             setItems={setItemsEmergency}
             style={styles.picker}
             placeholder="Select Emergency Status"
@@ -130,7 +133,6 @@ const FleetForm = () => {
           />
         </View>
       </View>
-
       <TouchableOpacity style={styles.button} onPress={addUnit}>
         <Text style={styles.buttonText}>Add Unit</Text>
       </TouchableOpacity>
@@ -150,8 +152,8 @@ const FleetForm = () => {
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (
           <View style={styles.unitCard}>
-            <Text style={styles.unitText}>Unit: {item.unitNumber}</Text>
             <Text style={styles.unitText}>Type: {item.unitType}</Text>
+            <Text style={styles.unitText}>Unit: {item.unitNumber}</Text>
             <Text style={styles.unitText}>Emergency: {item.emergency}</Text>
             <Text style={styles.unitText}>Specifics:</Text>
             {item.specifics.length > 0 ? (
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formGroup: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
@@ -292,6 +294,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  
+  
 });
 
 export default FleetForm;
