@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Alert, FlatList, Modal } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Alert, FlatList, Modal,Image, ScrollView } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import UnitSpecifics from './UnitSpecifics';
+import * as ImagePicker from 'expo-image-picker';
+import { db } from '../../../Firebase';
+import { collection, addDoc } from 'firebase/firestore';
 const FleetForm = () => {
   const DEFAULT_FLEET_NAME = 'Fleet';
   const [unitNumber, setUnitNumber] = useState('');
@@ -26,8 +29,9 @@ const FleetForm = () => {
   ]);
   const [specificsModalVisible, setSpecificsModalVisible] = useState(false);
   const [currentUnitIndex, setCurrentUnitIndex] = useState(null);
+  const [imageLabel, setImageLabel] = useState('');
 
-  const formattedDate = date.toISOString().split('T')[0];
+  const formattedDate = date.toLocaleDateString('en-CA')
   const fleetName = `${DEFAULT_FLEET_NAME} ${formattedDate}`;
 
   const addUnit = () => {
@@ -35,15 +39,15 @@ const FleetForm = () => {
       Alert.alert('Validation Error', 'Please enter Unit Number.');
       return;
     }
-
+  
     const existingFleet = fleetData.find((fleet) => fleet.fleetName === fleetName);
-
+  
     if (existingFleet) {
       const updatedFleetData = fleetData.map((fleet) => {
         if (fleet.fleetName === fleetName) {
           return {
             ...fleet,
-            units: [...fleet.units, { unitNumber, unitType, emergency, specifics: [] }],
+            units: [...fleet.units, { unitNumber, unitType, emergency, specifics: [], images: [] }],
           };
         }
         return fleet;
@@ -54,14 +58,14 @@ const FleetForm = () => {
         ...fleetData,
         {
           fleetName,
-          units: [{ unitNumber, unitType, emergency, specifics: [] }],
+          units: [{ unitNumber, unitType, emergency, specifics: [], images: [] }],
         },
       ]);
     }
-
+  
     setUnitNumber('');
-    setEmergencyValue('')
-    setUnitTypeValue('')
+    setEmergencyValue('');
+    setUnitTypeValue('');
   };
 
   const handleAddSpecifics = (index) => {
@@ -89,6 +93,123 @@ const FleetForm = () => {
     setSpecificsModalVisible(false);
   };
 
+  const handleImageUpload = async (unitIndex) => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const cameraPermissionResult = await ImagePicker.requestCameraPermissionsAsync();
+  
+    if (!permissionResult.granted || !cameraPermissionResult.granted) {
+      Alert.alert('Permission Denied', 'You need to allow permissions to upload an image.');
+      return;
+    }
+  
+    Alert.alert(
+      'Upload Image',
+      'Choose an option:',
+      [
+        {
+          text: 'Camera',
+          onPress: async () => {
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 1,
+            });
+            if (!result.canceled) {
+              promptForLabel(unitIndex, result.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Photo Library',
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 1,
+            });
+            if (!result.canceled) {
+              promptForLabel(unitIndex, result.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+  
+  const promptForLabel = (unitIndex, uri) => {
+    Alert.prompt(
+      'Add Label',
+      'Enter a label for the image:',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: (label) => {
+            updateImage(unitIndex, uri, label);
+          },
+        },
+      ],
+      'plain-text'
+    );
+  };
+  
+  const updateImage = (unitIndex, uri, label) => {
+    const updatedFleetData = fleetData.map((fleet) => {
+      if (fleet.fleetName === fleetName) {
+        const updatedUnits = fleet.units.map((unit, index) => {
+          if (index === unitIndex) {
+            const updatedUnit = {
+              ...unit,
+              images: [...unit.images, { uri, label }],
+            };
+            return updatedUnit;
+          }
+          return unit;
+        });
+  
+        return {
+          ...fleet,
+          units: updatedUnits,
+        };
+      }
+      return fleet;
+    });
+    setFleetData(updatedFleetData);
+  };
+
+  const deleteUnit = (fleetName, unitIndex) => {
+    const updatedFleetData = fleetData.map((fleet) => {
+      if (fleet.fleetName === fleetName) {
+        const updatedUnits = fleet.units.filter((_, index) => index !== unitIndex);
+        return {
+          ...fleet,
+          units: updatedUnits,
+        };
+      }
+      return fleet;
+    });
+    setFleetData(updatedFleetData);
+  };
+
+  const submitFleet = async () => {
+    try {
+      const fleetRef = collection(db, 'fleets');
+      await addDoc(fleetRef, {
+        fleetName,
+        units: fleetData.flatMap((fleet) => fleet.units),
+        createdAt: new Date(),
+      });
+      Alert.alert('Success', 'Fleet data submitted successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'There was an error submitting the fleet data.');
+      console.error(error);
+    }
+  };
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{fleetName}</Text>
@@ -133,48 +254,78 @@ const FleetForm = () => {
           />
         </View>
       </View>
-      <TouchableOpacity style={styles.button} onPress={addUnit}>
+      <TouchableOpacity style={styles.AddUnitbutton} onPress={addUnit}>
         <Text style={styles.buttonText}>Add Unit</Text>
       </TouchableOpacity>
 
       <Text style={styles.subTitle}>Units</Text>
       <FlatList
-        data={fleetData.flatMap((fleet) =>
-          fleet.units.map((unit, index) => ({
-            key: `${fleet.fleetName}-${index}`,
-            unitNumber: unit.unitNumber,
-            unitType: unit.unitType,
-            emergency: unit.emergency,
-            specifics: unit.specifics,
-            index,
-          }))
-        )}
-        keyExtractor={(item) => item.key}
-        renderItem={({ item }) => (
-          <View style={styles.unitCard}>
-            <Text style={styles.unitText}>Type: {item.unitType}</Text>
-            <Text style={styles.unitText}>Unit: {item.unitNumber}</Text>
-            <Text style={styles.unitText}>Emergency: {item.emergency}</Text>
-            <Text style={styles.unitText}>Specifics:</Text>
-            {item.specifics.length > 0 ? (
-              item.specifics.map((specific, i) => (
-                <Text key={i} style={styles.unitText}>
-                  - Service: {specific.serviceNeeded}, Tread Depth: {specific.treadDepth}, Tire Needed: {specific.tireNeeded}
-                </Text>
-              ))
-            ) : (
-              <Text style={styles.unitText}>No specifics added</Text>
-            )}
-            <TouchableOpacity
-              style={styles.addSpecificsButton}
-              onPress={() => handleAddSpecifics(item.index)}
-            >
-              <Text style={styles.addSpecificsButtonText}>Add Specifics</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+  data={fleetData.flatMap((fleet) =>
+    fleet.units.map((unit, index) => ({
+      key: `${fleet.fleetName}-${index}`,
+      unitNumber: unit.unitNumber,
+      unitType: unit.unitType,
+      emergency: unit.emergency,
+      specifics: unit.specifics,
+      images: unit.images, // Include the image URI
+      imageLabel: unit.imageLabel,
+      fleetName: fleet.fleetName,
+      index,
+    }))
+  )}
+  keyExtractor={(item) => item.key}
+  renderItem={({ item }) => (
+    <View style={styles.unitCard}>
+      <Text style={styles.unitText}>Type: {item.unitType}</Text>
+      <Text style={styles.unitText}>Unit: {item.unitNumber}</Text>
+      <Text style={styles.unitText}>Emergency: {item.emergency}</Text>
+      <Text style={styles.unitText}>Specifics:</Text>
+      {item.specifics.length > 0 ? (
+        item.specifics.map((specific, i) => (
+          <Text key={i} style={styles.unitText}>
+            - Service: {specific.serviceNeeded}, Tread Depth: {specific.treadDepth}, Tire Needed: {specific.tireNeeded}
+          </Text>
+        ))
+      ) : (
+        <Text style={styles.unitText}>No specifics added</Text>
+      )}
 
+{item.images.length > 0 ? (
+        <ScrollView horizontal={true} style={styles.imagesRow}>
+          {item.images.map((image, index) => (
+            <View key={index} style={styles.imageContainer}>
+              <Image source={{ uri: image.uri }} style={styles.unitImage} />
+              <Text style={styles.imageLabel}>{image.label}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={styles.unitText}>No Image Uploaded</Text>
+      )}
+      <TouchableOpacity
+        style={styles.addSpecificsButton}
+        onPress={() => handleAddSpecifics(item.index)}
+      >
+        <Text style={styles.addSpecificsButtonText}>Add Specifics</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.uploadButton}
+        onPress={() => handleImageUpload(item.index)}
+      >
+        <Text style={styles.uploadButtonText}>Upload Image</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => deleteUnit(item.fleetName, item.index)}
+      >
+        <Text style={styles.deleteButtonText}>X</Text>
+      </TouchableOpacity>
+    </View>
+  )}
+/>
+<TouchableOpacity style={styles.button} onPress={submitFleet}>
+        <Text style={styles.buttonText}>Submit Fleet</Text>
+      </TouchableOpacity>
       <Modal
         visible={specificsModalVisible}
         animationType="slide"
@@ -200,7 +351,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: 19,
   },
   input: {
     borderWidth: 1,
@@ -242,6 +393,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 15,
   },
+  AddUnitbutton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
@@ -257,7 +414,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 8,
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -294,7 +451,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
+  imagesRow: {
+    flexDirection: 'row', // Align images in a row
+    marginTop: 10,
+    paddingHorizontal: 5,
+  },
+  imageContainer: {
+    alignItems: 'center',
+    marginRight: 10, // Space between images
+  },
+  unitImage: {
+    width: 100, // Width of the image
+    height: 100, // Height of the image
+    borderRadius: 8, // Rounded corners
+  },
+  imageLabel: {
+    marginTop: 5,
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#6c757d',
+  },
+  uploadButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  uploadButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#dc3545',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  deleteButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  submitButton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 15,
+  },
   
 });
 
