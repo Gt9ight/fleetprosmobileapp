@@ -3,7 +3,8 @@ import { StyleSheet, View, Text, TextInput, TouchableOpacity, Alert, FlatList, M
 import DropDownPicker from 'react-native-dropdown-picker';
 import UnitSpecifics from './UnitSpecifics';
 import * as ImagePicker from 'expo-image-picker';
-import { db } from '../../../Firebase';
+import { db, storage } from '../../../Firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
 const FleetForm = () => {
   const DEFAULT_FLEET_NAME = 'Fleet';
@@ -39,15 +40,15 @@ const FleetForm = () => {
       Alert.alert('Validation Error', 'Please enter Unit Number.');
       return;
     }
-  
+
     const existingFleet = fleetData.find((fleet) => fleet.fleetName === fleetName);
-  
+
     if (existingFleet) {
       const updatedFleetData = fleetData.map((fleet) => {
         if (fleet.fleetName === fleetName) {
           return {
             ...fleet,
-            units: [...fleet.units, { unitNumber, unitType, emergency, specifics: [], images: [] }],
+            units: [...fleet.units, { unitNumber, unitType: unitTypeValue, emergency: emergencyValue, specifics: [], images: [] }],
           };
         }
         return fleet;
@@ -58,15 +59,15 @@ const FleetForm = () => {
         ...fleetData,
         {
           fleetName,
-          units: [{ unitNumber, unitType, emergency, specifics: [], images: [] }],
+          units: [{ unitNumber, unitType: unitTypeValue, emergency: emergencyValue, specifics: [], images: [] }],
         },
       ]);
     }
-  
+
     setUnitNumber('');
     setEmergencyValue('');
     setUnitTypeValue('');
-  };
+};
 
   const handleAddSpecifics = (index) => {
     setCurrentUnitIndex(index);
@@ -157,28 +158,41 @@ const FleetForm = () => {
     );
   };
   
-  const updateImage = (unitIndex, uri, label) => {
-    const updatedFleetData = fleetData.map((fleet) => {
-      if (fleet.fleetName === fleetName) {
-        const updatedUnits = fleet.units.map((unit, index) => {
-          if (index === unitIndex) {
-            const updatedUnit = {
-              ...unit,
-              images: [...unit.images, { uri, label }],
-            };
-            return updatedUnit;
-          }
-          return unit;
-        });
+  const updateImage = async (unitIndex, uri, label) => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
   
-        return {
-          ...fleet,
-          units: updatedUnits,
-        };
-      }
-      return fleet;
-    });
-    setFleetData(updatedFleetData);
+      const imageRef = ref(storage, `images/${new Date().toISOString()}_${unitIndex}.jpg`);
+
+      await uploadBytes(imageRef, blob);
+  
+      const imageUrl = await getDownloadURL(imageRef);
+  
+      const updatedFleetData = fleetData.map((fleet) => {
+        if (fleet.fleetName === fleetName) {
+          const updatedUnits = fleet.units.map((unit, index) => {
+            if (index === unitIndex) {
+              const updatedUnit = {
+                ...unit,
+                images: [...unit.images, { uri: imageUrl, label }],  // Save the URL instead of the local URI
+              };
+              return updatedUnit;
+            }
+            return unit;
+          });
+  
+          return {
+            ...fleet,
+            units: updatedUnits,
+          };
+        }
+        return fleet;
+      });
+      setFleetData(updatedFleetData);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
   };
 
   const deleteUnit = (fleetName, unitIndex) => {
@@ -198,11 +212,46 @@ const FleetForm = () => {
   const submitFleet = async () => {
     try {
       const fleetRef = collection(db, 'fleets');
+      
+      // Upload all images for the units before submitting fleet data
+      const updatedFleetData = await Promise.all(
+        fleetData.flatMap(async (fleet) => {
+          const updatedUnits = await Promise.all(
+            fleet.units.map(async (unit) => {
+              const updatedImages = await Promise.all(
+                unit.images.map(async (image) => {
+                  if (image.uri.startsWith('http')) {
+                    return image;  // If already a URL, no need to upload
+                  }
+                  try {
+                    const response = await fetch(image.uri);
+                    const blob = await response.blob();
+  
+                    const imageRef = ref(storage, `images/${new Date().toISOString()}.jpg`);
+                    await uploadBytes(imageRef, blob);
+  
+                    const imageUrl = await getDownloadURL(imageRef);
+                    return { ...image, uri: imageUrl }; // Update URI with the download URL
+                  } catch (error) {
+                    console.error('Error uploading image:', error);
+                    return image;
+                  }
+                })
+              );
+              return { ...unit, images: updatedImages };
+            })
+          );
+          return { ...fleet, units: updatedUnits };
+        })
+      );
+  
+      // After uploading images, submit the fleet data to Firestore
       await addDoc(fleetRef, {
         fleetName,
-        units: fleetData.flatMap((fleet) => fleet.units),
+        units: updatedFleetData.flatMap((fleet) => fleet.units),
         createdAt: new Date(),
       });
+  
       Alert.alert('Success', 'Fleet data submitted successfully!');
     } catch (error) {
       Alert.alert('Error', 'There was an error submitting the fleet data.');
