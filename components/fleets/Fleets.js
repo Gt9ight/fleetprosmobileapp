@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, Dimensions, FlatList, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, Dimensions, FlatList, ScrollView, RefreshControl } from 'react-native';
 import { getDocs, collection } from 'firebase/firestore';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../Firebase';
@@ -7,9 +7,9 @@ import * as Progress from 'react-native-progress';
 
 const Fleets = ({ navigation }) => {
   const [fleetData, setFleetData] = useState([]);
-  const [expandedFleet, setExpandedFleet] = useState(null); // Track the expanded fleet
+  const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
+  const [expandedFleet, setExpandedFleet] = useState(null);
 
-  // Fetch fleet data from Firebase
   const fetchFleetData = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'fleets'));
@@ -18,7 +18,6 @@ const Fleets = ({ navigation }) => {
       // Group fleets by fleetName
       const groupedFleets = fleets.reduce((acc, fleet) => {
         const existingFleet = acc.find((f) => f.fleetName === fleet.fleetName);
-  
         if (existingFleet) {
           existingFleet.units = [...existingFleet.units, ...fleet.units];
         } else {
@@ -64,6 +63,12 @@ const Fleets = ({ navigation }) => {
     fetchFleetData();
   }, []);
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchFleetData();
+    setRefreshing(false);
+  };
+
   const toggleFleetDetails = (fleetName) => {
     setExpandedFleet(expandedFleet === fleetName ? null : fleetName);
   };
@@ -89,7 +94,6 @@ const Fleets = ({ navigation }) => {
                     {completedUnits}/{totalUnits} Units Completed
                   </Text>
                 </View>
-                {/* Progress Bar */}
                 <View style={styles.progressContainer}>
                   <Progress.Bar 
                     progress={progress} 
@@ -104,7 +108,6 @@ const Fleets = ({ navigation }) => {
                 </View>
               </TouchableOpacity>
               {expandedFleet === item.fleetName && (
-                
                 <FlatList
                   data={item.units}
                   keyExtractor={(unit, index) => `unit-${index}`}
@@ -142,6 +145,9 @@ const Fleets = ({ navigation }) => {
             </View>
           );
         }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       />
     </View>
   );
